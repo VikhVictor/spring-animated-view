@@ -17,33 +17,16 @@
             android:layout_height="1dp"
             android:background="#666666" />
 
-        <RelativeLayout
+        <com.test.animtry.AnimatedEditText
             android:id="@+id/btn_name"
+            android:paddingLeft="12dp"
+            android:paddingRight="20dp"
             android:layout_width="match_parent"
+            android:background="#EEEEEE"
             android:layout_height="41dp">
 
-            <TextView
-                android:id="@+id/tv_label"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_centerVertical="true"
-                android:layout_marginLeft="12dp"
-                android:text="Имя"
-                android:textSize="16sp" />
 
-
-            <EditText
-                android:id="@+id/et_name"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_alignParentRight="true"
-                android:enabled="false"
-                android:layout_centerVertical="true"
-                android:layout_marginRight="20dp"
-                android:text="Виктор"
-                android:textSize="16sp" />
-
-        </RelativeLayout>
+        </com.test.animtry.AnimatedEditText>
 
         <View
             android:layout_width="match_parent"
