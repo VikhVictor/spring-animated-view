@@ -20,8 +20,6 @@
 
         <com.test.animtry.AnimatedEditText
             android:id="@+id/btn_name"
-            android:paddingLeft="12dp"
-            android:paddingRight="20dp"
             android:layout_width="match_parent"
             android:background="#EEEEEE"
             android:layout_height="41dp">

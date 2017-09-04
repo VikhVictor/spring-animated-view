@@ -9,6 +9,8 @@ import android.support.animation.SpringAnimation;
 import android.support.v4.content.ContextCompat;
 import android.text.InputType;
 import android.util.AttributeSet;
+import android.util.Log;
+import android.util.TypedValue;
 import android.view.KeyEvent;
 import android.view.MotionEvent;
 import android.view.View;
@@ -32,6 +34,8 @@ public class AnimatedEditText extends RelativeLayout implements View.OnClickList
     private TextView label;
     private EditText input;
 
+    private boolean isMoving = false;
+
     private int state = STATE_CLOSED;
 
     private SpringAnimation animToHide, animToVisible, animToLeft, animToRight;
@@ -52,6 +56,11 @@ public class AnimatedEditText extends RelativeLayout implements View.OnClickList
         init();
     }
 
+    @Override
+    protected void onLayout(boolean changed, int l, int t, int r, int b) {
+        super.onLayout(changed, l, t, r, b);
+    }
+
     private void init() {
         this.setFocusable(true);
         this.setFocusableInTouchMode(true);
@@ -62,6 +71,7 @@ public class AnimatedEditText extends RelativeLayout implements View.OnClickList
         RelativeLayout.LayoutParams lParams = new LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT);
 
+        lParams.setMargins(dpToPx(20), 0, 0, 0);
         lParams.addRule(ALIGN_PARENT_LEFT);
         lParams.addRule(CENTER_VERTICAL);
         label.setLayoutParams(lParams);
@@ -85,11 +95,9 @@ public class AnimatedEditText extends RelativeLayout implements View.OnClickList
                 ViewGroup.LayoutParams.WRAP_CONTENT);
         iParams.addRule(ALIGN_PARENT_RIGHT);
         iParams.addRule(CENTER_VERTICAL);
+        iParams.setMargins(0, 0, dpToPx(20), 0);
 
         input.setBackgroundColor(Color.TRANSPARENT);
-        //input.setFocusable(false);
-        //input.setClickable(false);
-        //input.setEnabled(false);
         input.setInputType(InputType.TYPE_CLASS_TEXT);
         input.setLines(1);
         input.setImeOptions(EditorInfo.IME_ACTION_DONE);
@@ -104,7 +112,7 @@ public class AnimatedEditText extends RelativeLayout implements View.OnClickList
             public void onGlobalLayout() {
                 input.getViewTreeObserver().removeOnGlobalLayoutListener(this);
                 animToLeft = SpringAnimationUtils.createSpringAnimation(input, SpringAnimationUtils.TRANSLATION_X,
-                        12, 10);
+                        dpToPx(20), 10);
                 animToLeft.addEndListener(AnimatedEditText.this);
 
                 animToRight = SpringAnimationUtils.createSpringAnimation(input, SpringAnimationUtils.TRANSLATION_X,
@@ -118,19 +126,24 @@ public class AnimatedEditText extends RelativeLayout implements View.OnClickList
 
     @Override
     public void onClick(View v) {
-        if (state == STATE_CLOSED) {
+        if (state == STATE_CLOSED && !isMoving) {
             openInput();
             showKeyboard();
         }
     }
 
     private void closeInput() {
+        animToRight = SpringAnimationUtils.createSpringAnimation(input, SpringAnimationUtils.TRANSLATION_X,
+                getWidth() - input.getWidth() - dpToPx(20), 1);
+        animToRight.addEndListener(this);
+        isMoving = true;
         animToVisible.start();
         animToRight.start();
         hideKeyboard();
     }
 
     private void openInput() {
+        isMoving = true;
         animToHide.start();
         animToLeft.start();
         input.requestFocus();
@@ -182,5 +195,24 @@ public class AnimatedEditText extends RelativeLayout implements View.OnClickList
         } else if (state == STATE_OPENED) {
             state = STATE_CLOSED;
         }
+        isMoving = false;
+    }
+
+    public void setLabelText(String text) {
+        this.label.setText(text);
+    }
+
+    public void setInputText(String text) {
+        this.input.setText(text);
+    }
+
+    public String getInputText() {
+        return this.input.getText().toString();
+    }
+
+    private int dpToPx(int dp) {
+        int px = (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 14, getContext()
+                .getResources().getDisplayMetrics());
+        return px;
     }
 }
