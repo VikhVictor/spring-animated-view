@@ -5,6 +5,7 @@ import android.graphics.Color;
 import android.support.animation.SpringAnimation;
 import android.support.v4.content.ContextCompat;
 import android.util.AttributeSet;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewTreeObserver;
@@ -16,7 +17,7 @@ import android.widget.TextView;
  * Created by victor on 31.08.17.
  */
 
-public class AnimatedEditText extends RelativeLayout implements View.OnClickListener {
+public class AnimatedEditText extends RelativeLayout implements View.OnClickListener, View.OnTouchListener {
 
     private static final int STATE_CLOSED = 0;
     private static final int STATE_OPENED = 1;
@@ -79,8 +80,10 @@ public class AnimatedEditText extends RelativeLayout implements View.OnClickList
         iParams.addRule(CENTER_VERTICAL);
 
         input.setBackgroundColor(Color.TRANSPARENT);
-        input.setFocusable(false);
-        input.setClickable(false);
+        //input.setFocusable(false);
+        //input.setClickable(false);
+        //input.setEnabled(false);
+        input.setOnTouchListener(this);
         input.setLayoutParams(iParams);
         input.setText("Some text");
 
@@ -103,6 +106,7 @@ public class AnimatedEditText extends RelativeLayout implements View.OnClickList
         if (state == STATE_CLOSED) {
             animToHide.start();
             animToLeft.start();
+            input.requestFocus();
             state = STATE_OPENED;
         } else if (state == STATE_OPENED) {
             animToVisible.start();
@@ -110,5 +114,15 @@ public class AnimatedEditText extends RelativeLayout implements View.OnClickList
             state = STATE_CLOSED;
         }
 
+    }
+
+    @Override
+    public boolean onTouch(View v, MotionEvent event) {
+        if (event.getAction() == MotionEvent.ACTION_UP
+                && state == STATE_CLOSED) {
+            performClick();
+        }
+
+        return false;
     }
 }
