@@ -7,7 +7,10 @@ import android.graphics.Rect;
 import android.support.animation.DynamicAnimation;
 import android.support.animation.SpringAnimation;
 import android.support.v4.content.ContextCompat;
+import android.text.Editable;
 import android.text.InputType;
+import android.text.TextUtils;
+import android.text.TextWatcher;
 import android.util.AttributeSet;
 import android.util.Log;
 import android.util.TypedValue;
@@ -32,6 +35,7 @@ public class AnimatedEditText extends RelativeLayout implements View.OnClickList
     private static final int STATE_OPENED = 1;
 
     private TextView label;
+    private TextView value;
     private EditText input;
 
     private boolean isMoving = false;
@@ -54,6 +58,12 @@ public class AnimatedEditText extends RelativeLayout implements View.OnClickList
     public AnimatedEditText(Context context, AttributeSet attrs, int defStyleAttr) {
         super(context, attrs, defStyleAttr);
         init();
+    }
+
+    @Override
+    protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
+        super.onMeasure(widthMeasureSpec, heightMeasureSpec);
+        this.input.setWidth(widthMeasureSpec);
     }
 
     @Override
@@ -89,35 +99,71 @@ public class AnimatedEditText extends RelativeLayout implements View.OnClickList
 
         this.addView(label);
 
-        input = new EditText(getContext());
+        value = new TextView(getContext());
 
-        RelativeLayout.LayoutParams iParams = new LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT,
+        RelativeLayout.LayoutParams vParams = new LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT);
-        iParams.addRule(ALIGN_PARENT_RIGHT);
-        iParams.addRule(CENTER_VERTICAL);
-        iParams.setMargins(0, 0, dpToPx(20), 0);
+        vParams.addRule(CENTER_VERTICAL);
+        /*vParams.setMargins(0, 0, dpToPx(20), 0);*/
 
-        input.setBackgroundColor(Color.TRANSPARENT);
-        input.setInputType(InputType.TYPE_CLASS_TEXT);
-        input.setLines(1);
-        input.setImeOptions(EditorInfo.IME_ACTION_DONE);
-        input.setOnEditorActionListener(this);
-        input.setOnTouchListener(this);
-        input.setLayoutParams(iParams);
-        input.setText("Some text");
-        input.setOnFocusChangeListener(this);
+        value.setBackgroundColor(Color.TRANSPARENT);
+        value.setLines(1);
+        value.setTextSize(14f);
+        value.setEllipsize(TextUtils.TruncateAt.END);
+        value.setLayoutParams(vParams);
+        value.setText("Some text");
+        value.setBackgroundColor(Color.GREEN);
 
-        input.getViewTreeObserver().addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
+        value.getViewTreeObserver().addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
             @Override
             public void onGlobalLayout() {
-                input.getViewTreeObserver().removeOnGlobalLayoutListener(this);
-                animToLeft = SpringAnimationUtils.createSpringAnimation(input, SpringAnimationUtils.TRANSLATION_X,
+                value.getViewTreeObserver().removeOnGlobalLayoutListener(this);
+                value.setX(getWidth() - value.getWidth() - dpToPx(20));
+                animToLeft = SpringAnimationUtils.createSpringAnimation(value, SpringAnimationUtils.TRANSLATION_X,
                         dpToPx(20), 10);
                 animToLeft.addEndListener(AnimatedEditText.this);
 
-                animToRight = SpringAnimationUtils.createSpringAnimation(input, SpringAnimationUtils.TRANSLATION_X,
-                        input.getX(), 30);
+
+                animToRight = SpringAnimationUtils.createSpringAnimation(value, SpringAnimationUtils.TRANSLATION_X,
+                        value.getX(), 30);
                 animToRight.addEndListener(AnimatedEditText.this);
+            }
+        });
+        this.addView(value);
+
+        input = new EditText(getContext());
+
+        RelativeLayout.LayoutParams iParams = new LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT);
+        iParams.addRule(RIGHT_OF, label.getId());
+        //iParams.addRule(ALIGN_PARENT_RIGHT);
+        iParams.addRule(CENTER_VERTICAL);
+        iParams.setMargins(dpToPx(20), 0, dpToPx(20), 0);
+
+        input.setTextSize(14f);
+        input.setOnFocusChangeListener(this);
+        input.setLines(1);
+        input.setInputType(InputType.TYPE_CLASS_TEXT|InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS);
+        input.setImeOptions(EditorInfo.IME_ACTION_DONE);
+        //input.setEllipsize(TextUtils.TruncateAt.END);
+        input.setBackgroundColor(Color.TRANSPARENT);
+        input.setVisibility(GONE);
+        input.setLayoutParams(iParams);
+        input.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence charSequence, int i, int i1, int i2) {
+
+            }
+
+            @Override
+            public void onTextChanged(CharSequence charSequence, int i, int i1, int i2) {
+
+            }
+
+            @Override
+            public void afterTextChanged(Editable editable) {
+                value.setText(editable.toString());
+                //recurseWrapContent(value, true);
             }
         });
 
@@ -126,27 +172,28 @@ public class AnimatedEditText extends RelativeLayout implements View.OnClickList
 
     @Override
     public void onClick(View v) {
-        if (state == STATE_CLOSED && !isMoving) {
-            openInput();
-            showKeyboard();
+        if (state == STATE_CLOSED) {
+            animToLeft.start();
+            animToHide.start();
+            RelativeLayout.LayoutParams vParams = new LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT);
+            vParams.addRule(CENTER_VERTICAL);
+            value.setLayoutParams(vParams);
+        } else if (state == STATE_OPENED) {
+            animToRight = SpringAnimationUtils.createSpringAnimation(value, SpringAnimationUtils.TRANSLATION_X,
+                    getWidth() - value.getWidth() - dpToPx(20), 1);
+            animToRight.addEndListener(this);
+            animToRight.start();
+            animToVisible.start();
         }
     }
 
     private void closeInput() {
-        animToRight = SpringAnimationUtils.createSpringAnimation(input, SpringAnimationUtils.TRANSLATION_X,
-                getWidth() - input.getWidth() - dpToPx(20), 1);
-        animToRight.addEndListener(this);
-        isMoving = true;
-        animToVisible.start();
-        animToRight.start();
-        hideKeyboard();
+
     }
 
     private void openInput() {
-        isMoving = true;
-        animToHide.start();
-        animToLeft.start();
-        input.requestFocus();
+
     }
 
     private void hideKeyboard() {
@@ -161,22 +208,12 @@ public class AnimatedEditText extends RelativeLayout implements View.OnClickList
 
     @Override
     public boolean onTouch(View v, MotionEvent event) {
-        if (event.getAction() == MotionEvent.ACTION_UP
-                && state == STATE_CLOSED) {
-            performClick();
-        }
-
         return false;
     }
 
 
-
     @Override
     public boolean onEditorAction(TextView textView, int actionId, KeyEvent keyEvent) {
-        if (actionId == EditorInfo.IME_ACTION_DONE) {
-            input.clearFocus();
-            closeInput();
-        }
         return false;
     }
 
@@ -184,18 +221,36 @@ public class AnimatedEditText extends RelativeLayout implements View.OnClickList
     @Override
     public void onFocusChange(View view, boolean hasFocus) {
         if (!hasFocus) {
-            closeInput();
+            input.setVisibility(GONE);
+            value.setVisibility(VISIBLE);
+            hideKeyboard();
+            int iLeft = getWidth() - value.getWidth() - dpToPx(20);
+            if (iLeft <= label.getX() + label.getWidth() + dpToPx(20)) {
+                animToRight = SpringAnimationUtils.createSpringAnimation(value, SpringAnimationUtils.TRANSLATION_X,
+                        label.getX() + label.getWidth() + dpToPx(20), 1);
+                value.setWidth((int) (getWidth() - (label.getX() + label.getWidth() + 2 * dpToPx(20))));
+            } else {
+                animToRight = SpringAnimationUtils.createSpringAnimation(value, SpringAnimationUtils.TRANSLATION_X,
+                        getWidth() - value.getWidth() - dpToPx(20), 1);
+            }
+            animToRight.addEndListener(this);
+            animToRight.start();
+            animToVisible.start();
         }
     }
 
     @Override
-    public void onAnimationEnd(DynamicAnimation animation, boolean canceled, float value, float velocity) {
-        if (state == STATE_CLOSED) {
-            state = STATE_OPENED;
-        } else if (state == STATE_OPENED) {
+    public void onAnimationEnd(DynamicAnimation animation, boolean canceled, float val, float velocity) {
+        if (state == STATE_OPENED) {
             state = STATE_CLOSED;
+        } else if (state == STATE_CLOSED) {
+            state = STATE_OPENED;
+            input.setVisibility(VISIBLE);
+            input.requestFocus();
+            showKeyboard();
+            input.setSelection(input.getText().length());
+            value.setVisibility(INVISIBLE);
         }
-        isMoving = false;
     }
 
     public void setLabelText(String text) {
@@ -206,6 +261,10 @@ public class AnimatedEditText extends RelativeLayout implements View.OnClickList
         this.input.setText(text);
     }
 
+    public void setValueText(String text) {
+        this.value.setText(text);
+    }
+
     public String getInputText() {
         return this.input.getText().toString();
     }
@@ -214,5 +273,54 @@ public class AnimatedEditText extends RelativeLayout implements View.OnClickList
         int px = (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 14, getContext()
                 .getResources().getDisplayMetrics());
         return px;
+    }
+
+
+    /**
+     * Internal method to recurse on view tree. Tag you View nodes in XML layouts to read the logs more easily
+     */
+    private static void recurseWrapContent( View nodeView, boolean relayoutAllNodes )
+    {
+        // Does not recurse when visibility GONE
+        if ( nodeView.getVisibility() == View.GONE ) {
+            // nodeView.layout( nodeView.getLeft(), nodeView.getTop(), 0, 0 );		// No need
+            return;
+        }
+
+        ViewGroup.LayoutParams layoutParams = nodeView.getLayoutParams();
+        boolean isWrapWidth  = ( layoutParams.width  == LayoutParams.WRAP_CONTENT ) || relayoutAllNodes;
+        boolean isWrapHeight = ( layoutParams.height == LayoutParams.WRAP_CONTENT ) || relayoutAllNodes;
+
+        if ( isWrapWidth || isWrapHeight ) {
+
+            boolean changed = false;
+            int right  = nodeView.getRight();
+            int bottom = nodeView.getBottom();
+
+            if ( isWrapWidth  && nodeView.getMeasuredWidth() > 0 ) {
+                right = nodeView.getLeft() + nodeView.getMeasuredWidth();
+                changed = true;
+                Log.v("TAG", "+++ LayoutWrapContentUpdater recurseWrapContent set Width to "+ nodeView.getMeasuredWidth() +" of node Tag="+ nodeView.getTag() +" ["+ nodeView +"]");
+            }
+            if ( isWrapHeight && nodeView.getMeasuredHeight() > 0 ) {
+                bottom = nodeView.getTop() + nodeView.getMeasuredHeight();
+                changed = true;
+                Log.v("TAG", "+++ LayoutWrapContentUpdater recurseWrapContent set Height to "+ nodeView.getMeasuredHeight() +" of node Tag="+ nodeView.getTag() +" ["+ nodeView +"]");
+            }
+
+            if (changed) {
+                nodeView.layout( nodeView.getLeft(), nodeView.getTop(), right, bottom );
+                // FIXME: Adjust left & top position when gravity = "center" / "bottom" / "right"
+            }
+        }
+
+        // --- Recurse
+        if ( nodeView instanceof ViewGroup ) {
+            ViewGroup nodeGroup = (ViewGroup)nodeView;
+            for (int i = 0; i < nodeGroup.getChildCount(); i++) {
+                recurseWrapContent( nodeGroup.getChildAt(i), relayoutAllNodes );
+            }
+        }
+        return;
     }
 }

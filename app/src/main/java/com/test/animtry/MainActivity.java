@@ -24,6 +24,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         mInput = (AnimatedEditText) findViewById(R.id.btn_name);
+        mInput.setValueText("Victor");
+        mInput.setInputText("Victor");
     }
 
     @Override
